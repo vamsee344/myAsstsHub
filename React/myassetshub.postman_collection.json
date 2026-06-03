@@ -1,0 +1,411 @@
+{
+  "info": {
+    "_postman_id": "64793be4-e1c3-46f8-b4c7-1c073c134006",
+    "name": "myassetshub",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "33634917",
+    "_collection_link": "https://go.postman.co/collection/37899834-64793be4-e1c3-46f8-b4c7-1c073c134006?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "https://myassetshub.com/api/v1/auth/login",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// Basic response logging",
+              "pm.test(\"Response received\", function () {",
+              "  pm.expect(pm.response.code).to.be.a('number');",
+              "});",
+              "",
+              "// Safe debug logging (pm.console is not supported in Postman Sandbox)",
+              "const status = pm.response.code;",
+              "let bodyText = \"\";",
+              "try {",
+              "  bodyText = pm.response.text() || \"\";",
+              "} catch (e) {",
+              "  bodyText = \"\";",
+              "}",
+              "",
+              "try {",
+              "  console.log(`[login] Status: ${status}`);",
+              "  console.log(`[login] Response headers: ${JSON.stringify(pm.response.headers.toObject())}`);",
+              "  console.log(`[login] Body (first 500 chars): ${bodyText ? bodyText.slice(0, 500) : '<empty>'}`);",
+              "} catch (e) {",
+              "  // ignore logging errors",
+              "}",
+              "",
+              "// Handle JSON parsing safely",
+              "let json = null;",
+              "try {",
+              "  // Only attempt JSON parsing when body has something",
+              "  if (bodyText && bodyText.trim().length) {",
+              "    json = pm.response.json();",
+              "  }",
+              "} catch (e) {",
+              "  json = null;",
+              "}",
+              "",
+              "pm.test(\"Status is expected (2xx/4xx/5xx)\", function () {",
+              "  pm.expect([200, 201, 400, 401, 403, 404, 422, 500, 502, 503]).to.include(status);",
+              "});",
+              "",
+              "// Fail explicitly on server errors",
+              "pm.test(\"No 5xx server error\", function () {",
+              "  pm.expect(String(status).startsWith('5'), `Server error ${status} received`).to.eql(false);",
+              "});",
+              "",
+              "// Success: token presence + extraction",
+              "if (status === 200 || status === 201) {",
+              "  pm.test(\"Login success response contains a token\", function () {",
+              "    pm.expect(json, \"Expected JSON body\").to.be.an('object');",
+              "",
+              "    // Common token field patterns",
+              "    const token = json?.token || json?.access_token || json?.data?.token || json?.data?.access_token;",
+              "    pm.expect(token, \"token/access_token not found in response\").to.be.a('string').and.not.be.empty;",
+              "",
+              "    // Prefer environment token if an environment is active; otherwise use global auth_token",
+              "    try {",
+              "      const envName = pm.environment?.name;",
+              "      if (envName) {",
+              "        pm.environment.set('token', token);",
+              "      } else {",
+              "        pm.globals.set('auth_token', token);",
+              "      }",
+              "    } catch (e) {",
+              "      // fall back to global",
+              "      pm.globals.set('auth_token', token);",
+              "    }",
+              "  });",
+              "}",
+              "",
+              "// Common validation / auth failures",
+              "if ([400, 401, 403, 404, 422].includes(status)) {",
+              "  pm.test(\"Client error has a JSON error message/shape\", function () {",
+              "    pm.expect(json, \"Expected JSON error body\").to.be.an('object');",
+              "    const msg = json?.message || json?.error || json?.errors;",
+              "    pm.expect(msg, \"No message/error/errors found\").to.exist;",
+              "  });",
+              "}",
+              "",
+              "// 5xx test already covers server errors; keep a marker test for visibility",
+              "if (String(status).startsWith('5')) {",
+              "  pm.test(\"Server error returned (investigate backend logs)\", function () {",
+              "    pm.expect(true).to.eql(true);",
+              "  });",
+              "}",
+              ""
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        },
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              ""
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{auth_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Cache-Control",
+            "value": "no-cache"
+          },
+          {
+            "key": "User-Agent",
+            "value": "PostmanRuntime/7.43.0"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{login_email}}\",\n  \"password\": \"{{login_password}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}api/v1/auth/login",
+          "host": [
+            "{{base_url}}api"
+          ],
+          "path": [
+            "v1",
+            "auth",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "https://myassetshub.com/api/v1/categories",
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}api/v1/categories",
+          "host": [
+            "{{base_url}}api"
+          ],
+          "path": [
+            "v1",
+            "categories"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "https://myassetshub.com/api/v1/auth/registration",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// Basic response logging",
+              "pm.test(\"Response received\", function () {",
+              "  pm.expect(pm.response.code).to.be.a('number');",
+              "});",
+              "",
+              "// Safe debug logging (pm.console is not supported in Postman Sandbox)",
+              "const status = pm.response.code;",
+              "let bodyText = \"\";",
+              "try {",
+              "  bodyText = pm.response.text() || \"\";",
+              "} catch (e) {",
+              "  bodyText = \"\";",
+              "}",
+              "",
+              "try {",
+              "  console.log(`[login] Status: ${status}`);",
+              "  console.log(`[login] Response headers: ${JSON.stringify(pm.response.headers.toObject())}`);",
+              "  console.log(`[login] Body (first 500 chars): ${bodyText ? bodyText.slice(0, 500) : '<empty>'}`);",
+              "} catch (e) {",
+              "  // ignore logging errors",
+              "}",
+              "",
+              "// Handle JSON parsing safely",
+              "let json = null;",
+              "try {",
+              "  // Only attempt JSON parsing when body has something",
+              "  if (bodyText && bodyText.trim().length) {",
+              "    json = pm.response.json();",
+              "  }",
+              "} catch (e) {",
+              "  json = null;",
+              "}",
+              "",
+              "pm.test(\"Status is expected (2xx/4xx/5xx)\", function () {",
+              "  pm.expect([200, 201, 400, 401, 403, 404, 422, 500, 502, 503]).to.include(status);",
+              "});",
+              "",
+              "// Fail explicitly on server errors",
+              "pm.test(\"No 5xx server error\", function () {",
+              "  pm.expect(String(status).startsWith('5'), `Server error ${status} received`).to.eql(false);",
+              "});",
+              "",
+              "// Success: token presence + extraction",
+              "if (status === 200 || status === 201) {",
+              "  pm.test(\"Login success response contains a token\", function () {",
+              "    pm.expect(json, \"Expected JSON body\").to.be.an('object');",
+              "",
+              "    // Common token field patterns",
+              "    const token = json?.token || json?.access_token || json?.data?.token || json?.data?.access_token;",
+              "    pm.expect(token, \"token/access_token not found in response\").to.be.a('string').and.not.be.empty;",
+              "",
+              "    // Prefer environment token if an environment is active; otherwise use global auth_token",
+              "    try {",
+              "      const envName = pm.environment?.name;",
+              "      if (envName) {",
+              "        pm.environment.set('token', token);",
+              "      } else {",
+              "        pm.globals.set('auth_token', token);",
+              "      }",
+              "    } catch (e) {",
+              "      // fall back to global",
+              "      pm.globals.set('auth_token', token);",
+              "    }",
+              "  });",
+              "}",
+              "",
+              "// Common validation / auth failures",
+              "if ([400, 401, 403, 404, 422].includes(status)) {",
+              "  pm.test(\"Client error has a JSON error message/shape\", function () {",
+              "    pm.expect(json, \"Expected JSON error body\").to.be.an('object');",
+              "    const msg = json?.message || json?.error || json?.errors;",
+              "    pm.expect(msg, \"No message/error/errors found\").to.exist;",
+              "  });",
+              "}",
+              "",
+              "// 5xx test already covers server errors; keep a marker test for visibility",
+              "if (String(status).startsWith('5')) {",
+              "  pm.test(\"Server error returned (investigate backend logs)\", function () {",
+              "    pm.expect(true).to.eql(true);",
+              "  });",
+              "}",
+              ""
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        },
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              ""
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{auth_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Cache-Control",
+            "value": "no-cache"
+          },
+          {
+            "key": "User-Agent",
+            "value": "PostmanRuntime/7.43.0"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"referid\": \"MAHREF78491A\",\n    \"fname\": \"Yamuna\",\n    \"lname\": \"A\",\n    \"uname\": \"Yamunakumari\",\n    \"email\": \"yamunakumari@gmail.com\",\n    \"country_name\": \"India\",\n    \"country_code\": \"+91\",\n    \"phone\": \"9996891999\",\n    \"password\": \"B654321@Aa\",\n    \"conpassword\": \"B654321@Aa\",\n    \"ppolicy\": \"1\",\n    \"location\": \"IND\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}api/v1/auth/registration",
+          "host": [
+            "{{base_url}}api"
+          ],
+          "path": [
+            "v1",
+            "auth",
+            "registration"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": ""
+    },
+    {
+      "key": "login_email",
+      "value": ""
+    },
+    {
+      "key": "login_password",
+      "value": ""
+    },
+    {
+      "key": "auth_token",
+      "value": ""
+    }
+  ]
+}

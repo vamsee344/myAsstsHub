@@ -1,0 +1,40 @@
+export type AuthStackParamList = {
+  Splash: undefined;
+  Login: undefined;
+  Register: undefined;
+  ForgotPassword: { email?: string } | undefined;
+};
+
+export type MainStackParamList = {
+  MainTabs: undefined;
+  PostDetail: { postId: number };
+  CreatePost: undefined;
+  StoryViewer: { storyId: number };
+  PropertyDetail: { id: number };
+  CreateProperty: undefined;
+  Conversation: { username: string; recipientName: string };
+  EditProfile: undefined;
+  ProfileView: { username: string };
+  ProjectList: undefined;
+  ProjectDetail: { id: number };
+  CreateProject: undefined;
+  Membership: undefined;
+  Referrals: undefined;
+  Earnings: undefined;
+  Invoices: undefined;
+  Notifications: undefined;
+  Requirements: undefined;
+  Bookings: undefined;
+  Services: undefined;
+  ServiceDetail: { code: string };
+  Albums: undefined;
+  Events: undefined;
+  Jobs: undefined;
+  Analytics: undefined;
+  YouTube: undefined;
+  Settings: undefined;
+  StaticPage: { slug: string; title: string };
+  Withdraw: undefined;
+};
+export type RootStackParamList = AuthStackParamList & MainStackParamList;
+export default RootStackParamList;
