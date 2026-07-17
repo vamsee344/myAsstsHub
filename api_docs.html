@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyAssetHub API Documentation</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown-light.min.css" rel="stylesheet">
+    <style>
+        body {
+            box-sizing: border-box;
+            min-width: 200px;
+            max-width: 980px;
+            margin: 0 auto;
+            padding: 45px;
+            background-color: #f6f8fa;
+        }
+        .markdown-body {
+            background-color: #ffffff;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        @media (max-width: 767px) {
+            body {
+                padding: 15px;
+            }
+            .markdown-body {
+                padding: 15px;
+            }
+        }
+        .markdown-body code {
+            color: #d73a49;
+            background-color: #ffeef0;
+        }
+        .markdown-body h2 {
+            color: #0366d6;
+            border-bottom: 2px solid #eaecef;
+        }
+        .markdown-body h3 {
+            color: #24292e;
+        }
+    </style>
+</head>
+<body>
+    <div id="content" class="markdown-body"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script>
+        const markdown = `# Mobile API Membership Onboarding Documentation
+
+This document outlines the API endpoints and flows for the Mobile App to handle user onboarding, custom plans, and membership add-ons.
+
+## Base URL
+\`/api/v1\`
+
+---
+
+## 1. Authentication & Onboarding Redirect
+
+When a user logs in (or activates their account via the email link), the API now checks if they have an active membership. 
+
+**Endpoint:** \`POST /auth/login\`
+**Payload:**
+\`\`\`json
+{
+  "email": "testuser@gmail.com",
+  "password": "B654321@Aa",
+  "code": "Test257" // (Optional) Required ONLY if the user's account is not yet activated via email link
+}
+\`\`\`
+
+**Response (Success with Onboarding Redirect):**
+\`\`\`json
+{
+  "status": true,
+  "message": "Login successful",
+  "data": {
+    "token": "eyJ...",
+    "user": { ... },
+    "redirect": "onboarding"
+  }
+}
+\`\`\`
+**Mobile App Action:** If \`redirect: "onboarding"\` is present, immediately route the user to the 3-step membership selection screen.
+
+---
+
+## 2. Onboarding: Step 1 (Select Free Plan)
+
+> **Website Verification URL:** \`https://myassetshub.com/onboarding/plans\` (Log in on the web to see the onboarding plans screen)
+
+
+If the user chooses the **Freemium** (Free) plan, simply call this endpoint to activate it. No payment is required  and user_type will be by default "customer". 
+
+**Endpoint:** \`POST /memberships/select-free-plan\`
+**Headers:** \`Authorization: Bearer <TOKEN>\`
+
+**Response:**
+\`\`\`json
+{
+  "status": "success",
+  "message": "Free Plan activated successfully."
+}
+\`\`\`
+
+---
+
+## 3. Onboarding: Step 2 (Get Plans & Pricing)
+
+> **Website Verification URL:** \`https://myassetshub.com/onboarding/plans\`
+
+
+### Get Standard Plans
+**Endpoint:** \`GET /memberships/standard-plans\`
+**Headers:** \`Authorization: Bearer <TOKEN>\`
+**Description:** Retrieves all active predefined plans (excluding Custom Plan). Each plan includes its \`permissions\`.
+
+### Get Custom Plan Pricing
+**Endpoint:** \`GET /memberships/custom-pricing\`
+**Headers:** \`Authorization: Bearer <TOKEN>\`
+**Description:** Retrieves the base prices and per-item costs for building a custom plan.
+
+---
+
+## 4. Onboarding: Step 3 (Payment & Verification)
+
+### For Standard Plans
+
+**1. Initiate Payment**
+**Endpoint:** \`POST /memberships/initiate\`
+**Headers:** \`Authorization: Bearer <TOKEN>\`
+**Payload:**
+\`\`\`json
+{
+  "plan_id": 2,
+  "plan_name": "Standard Plan"
+}
+\`\`\`
+*Returns Razorpay \`order_id\` and \`amount\` to open the SDK.*
+
+**2. Verify Payment**
+**Endpoint:** \`POST /memberships/verify\`
+**Headers:** \`Authorization: Bearer <TOKEN>\`
+**Payload:**
+\`\`\`json
+{
+  "razorpay_payment_id": "pay_...",
+  "razorpay_order_id": "order_...",
+  "razorpay_signature": "sig_...",
+  "amount": "1000",
+  "plan_id": 2,
+  "plan_name": "Standard Plan",
+  "user_type": "real-estate-agent" // Required: from /api/v1/user-types API
+}
+\`\`\`
+
+---
+
+### For Custom Plans
+
+**1. Initiate Custom Payment**
+**Endpoint:** \`POST /memberships/initiate-custom\`
+**Headers:** \`Authorization: Bearer <TOKEN>\`
+**Payload:**
+\`\`\`json
+{
+  "amount": 2500.50
+}
+\`\`\`
+
+**2. Verify Custom Payment & Create Plan**
+**Endpoint:** \`POST /memberships/verify-custom\`
+**Headers:** \`Authorization: Bearer <TOKEN>\`
+**Payload:**
+\`\`\`json
+{
+  "razorpay_payment_id": "pay_...",
+  "razorpay_order_id": "order_...",
+  "razorpay_signature": "sig_...",
+  "amount": "2500.50",
+  "user_type": "real-estate-agent", // Required: from /api/v1/user-types API
+  "custom_data": {
+    "duration": 30, // or 365
+    "add_listings": 10,
+    "add_services": 5,
+    "add_events": 2,
+    "add_articles": 1,
+    "add_profile": 0,
+    "add_features": [1, 2, 4] // Array of Feature IDs selected
+  }
+}
+\`\`\`
+
+---
+
+## 5. Add-ons / Upgrades (Post-Onboarding)
+
+> **Website Verification URL:** \`https://myassetshub.com/plans\` (For post-onboarding upgrades)
+
+
+When an existing user wants to buy more limits or features.
+
+### Calculate Prorated Add-on Price
+**Endpoint:** \`POST /memberships/calculate-addon\`
+**Headers:** \`Authorization: Bearer <TOKEN>\`
+**Payload:**
+\`\`\`json
+{
+  "add_listings": 5,
+  "add_services": 2,
+  "add_events": 0,
+  "add_articles": 0,
+  "add_profile": 0,
+  "add_features": [5]
+}
+\`\`\`
+**Response:** Returns \`total_payable\` (including GST) and \`days_left\`.
+
+### Initiate & Verify Add-on Payment
+- **Initiate:** \`POST /memberships/initiate-addon\` (Same payload as initiate-custom)
+- **Verify:** \`POST /memberships/verify-addon\` (Same payload structure as verify-custom, but pass \`addon_data\` instead of \`custom_data\`).
+
+---
+
+## 6. Refer and Earn & Profile Actions
+
+> **Website Verification URL:** \`https://myassetshub.com/refer-and-earn\`
+
+
+### Refer and Earn Summary
+**Endpoint:** \`GET /referrals/summary\`
+**Headers:** \`Authorization: Bearer <TOKEN>\`
+**Description:** Fetches all data needed for the Refer and Earn screen.
+**Response:**
+\`\`\`json
+{
+  "status": "success",
+  "data": {
+    "referral_code": "REF123",
+    "refer_count": 5,
+    "active_referrals": [...],
+    "inactive_referrals": [...],
+    "non_referrals": [...],
+    "reassignment_history": [...],
+    "all_active_business_users": [...]
+  }
+}
+\`\`\`
+
+### Fetch Tree Children (AJAX equivalent)
+**Endpoint:** \`POST /referrals/tree-children\`
+**Headers:** \`Authorization: Bearer <TOKEN>\`
+**Payload:**
+\`\`\`json
+{
+  "parent_id": 10
+}
+\`\`\`
+**Response:** Returns a list of active business children for the given parent to populate the tree view.
+
+### Reassign User
+**Endpoint:** \`POST /referrals/reassign-user\`
+**Headers:** \`Authorization: Bearer <TOKEN>\`
+**Payload:**
+\`\`\`json
+{
+  "user_id": 15,
+  "new_parent_id": 10,
+  "transaction_pin": "1234"
+}
+\`\`\`
+**Description:** Reassigns a direct child to a new parent in the tree. Requires the sponsor's 4-digit transaction PIN.
+
+### Create/Update Transaction PIN
+
+> **Website Verification URL:** \`https://myassetshub.com/profile\`
+**Endpoint:** \`PUT /profile/transaction-pin\`
+**Headers:** \`Authorization: Bearer <TOKEN>\`
+**Payload:**
+\`\`\`json
+{
+  "transaction_pin": "1234",
+  "confirm_transaction_pin": "1234"
+}
+\`\`\`
+**Description:** Sets or updates the user's 4-digit transaction PIN used for reassignments.
+
+## User-Side Advertisement Management APIs
+
+> **Website Verification URL:** \`https://myassetshub.com/advertisements\`
+
+**Base Path:** \`/api/v1/advertisements\`
+**Authentication:** JWT Bearer Token Required
+**Permissions:** Requires \`advertisement-crud\` permission in matrix.
+
+### Get Metadata (Positions & Sizes)
+**Endpoint:** \`GET /metadata\`
+**Response:** Returns a list of available ad positions and sizes for the dropdowns.
+
+### Get My Campaigns
+**Endpoint:** \`GET /campaigns\`
+**Response:** Returns all campaigns owned by the logged-in user.
+
+### Create Campaign
+**Endpoint:** \`POST /campaigns\`
+**Payload:**
+\`\`\`json
+{
+  "campaign_name": "Summer Sale",
+  "campaign_type": "CPC",
+  "budget": 500.00,
+  "daily_budget": 50.00,
+  "start_date": "2026-08-01",
+  "end_date": "2026-08-31"
+}
+\`\`\`
+**Description:** Creates a new ad campaign. Automatically creates an \`advertisers\` record for the user if they don't have one.
+
+### Get My Advertisements
+**Endpoint:** \`GET /\`
+**Response:** Returns all advertisements across the user's campaigns.
+
+### Create Advertisement
+**Endpoint:** \`POST /\`
+**Content-Type:** \`multipart/form-data\`
+**Payload:**
+- \`campaign_id\` (int): Required
+- \`title\` (string): Required
+- \`display_type\` (string): Required (Image, Video, HTML)
+- \`media_file\` (file): Required if Image/Video
+- \`custom_html\` (string): Required if HTML
+- \`target_url\` (string): Optional
+- \`ad_position_id\` (int): Optional
+- \`ad_size_id\` (int): Optional
+- \`description\` (string): Optional
+**Description:** Uploads an advertisement. Automatically sets status to \`Pending\` for admin approval.
+
+### Pay for Advertisement (Weekly)
+**Endpoint:** \`POST /(:num)/pay\`  (e.g., \`/api/v1/advertisements/5/pay\`)
+**Payload:**
+\`\`\`json
+{
+  "razorpay_payment_id": "pay_..."
+}
+\`\`\`
+**Description:** Validates a Razorpay payment and activates the ad for 7 days. Modifies \`payment_status\` to 'Paid' and updates \`paid_until\`.
+
+## Public Advertisement Fetching
+**Base Path:** \`/api/v1/public/advertisements\`
+**Authentication:** None Required
+
+### Get Queue of Ads for a Position
+**Endpoint:** \`GET /position/(:num)\`
+**Description:** Returns an array of Active and Paid advertisements for the specified \`ad_position_id\`. Ordered by First-Come-First-Served (FIFO). The frontend should use this array to implement a slider/carousel for the ads in this position.
+**Response:**
+\`\`\`json
+{
+  "status": "success",
+  "data": [
+    {
+      "id": "5",
+      "title": "Ad Title",
+      "image": "uploads/ads/...",
+      "target_url": "https://..."
+    }
+  ]
+}
+\`\`\`
+
+---
+
+## 7. Enquiries & Requirements Conversations
+
+> **Website Verification URLs:** 
+> - Enquiries: \`https://myassetshub.com/enquiries\`
+> - Requirements: \`https://myassetshub.com/requirements\`
+
+
+**Base Path:** \`/api/v1\`
+**Authentication:** JWT Bearer Token Required
+
+These endpoints allow users to interact with enquiries (leads) and requirements. Note that \`marked_spam_by\` is used to hide messages from the specific user who flagged it as spam.
+
+### Get Enquiries Conversations
+
+> **Website Verification Example:** \`https://myassetshub.com/viewenqueries/8\`
+
+**Endpoint:** \`GET /enquiries/view-conversation/(:num)\`  (e.g., \`/api/v1/enquiries/view-conversation/5\`)
+**Description:** Returns all messages for a given Enquiry ID, excluding messages marked as spam by the current user.
+
+### Reply to Enquiry
+**Endpoint:** \`POST /enquiries/reply\`
+**Payload:**
+- \`q_id\` (int): Enquiry ID
+- \`message\` (string): Your reply text
+**Description:** Adds a new message to the conversation. If the other user has an active auto-response for \`agent\`, \`property\`, etc., the system will automatically insert their automated reply.
+
+### Edit Message
+**Endpoint:** \`POST /enquiries/edit-message\` (or \`/requirements/edit-message\`)
+**Payload:**
+- \`id\` (int): Message ID
+- \`message\` (string): Updated text
+**Description:** Edits a message you sent.
+
+### Delete Message
+**Endpoint:** \`POST /enquiries/delete-message\` (or \`/requirements/delete-message\`)
+**Payload:**
+- \`id\` (int): Message ID
+- \`type\` (string): 'enquiry' or 'requirement'
+
+### Mark Message as Spam
+**Endpoint:** \`POST /enquiries/mark-spam\` (or \`/requirements/mark-spam\`)
+**Payload:**
+- \`id\` (int): Message ID
+**Description:** Marks a message as spam, updating the \`marked_spam_by\` column. This hides the message from the user who marked it, matching the website's logic.
+
+*(Note: The exact same endpoints exist for requirements under \`/requirements/view-conversation/(:num)\`, \`/requirements/reply\`, etc.)*
+> **Website Verification Example for Requirements:** \`https://myassetshub.com/viewRequirements/15\`
+
+---
+
+## 8. Automated Responses
+
+> **Website Verification URL:** \`https://myassetshub.com/viewenqueries/8\` and \`https://myassetshub.com/viewRequirements/15\`
+for enquiries conversations and requirements auto generation
+
+**Base Path:** \`/api/v1/automated-responses\`
+**Authentication:** JWT Bearer Token Required
+**Permissions:** Requires \`lead-generation\` permission.
+
+### Get Automated Responses
+**Endpoint:** \`GET /\`
+**Description:** Returns the user's saved auto-responses and their active status.
+
+### Save Automated Responses
+**Endpoint:** \`POST /save\`
+**Payload (Form Data):**
+Send any or all of these form-data keys simultaneously:
+- \`auto_response_agent\` (Text message)
+- \`is_active_agent\` (1 or 0)
+- \`auto_response_property\` / \`is_active_property\`
+- \`auto_response_services\` / \`is_active_services\`
+- \`auto_response_events\` / \`is_active_events\`
+- \`auto_response_articles\` / \`is_active_articles\`
+- \`auto_response_requirements\` / \`is_active_requirements\`
+
+---
+
+## 9. Get All Live Ads (Mobile App Rotator)
+
+> **Website Verification URL:** \`http://localhost:82/myassethub\` (Visible on the homepage or sidebar areas)
+
+
+**Endpoint:** \`GET /public/advertisements/live\`
+**Authentication:** None Required
+**Description:** Returns ALL advertisements that are currently active, paid, and have not yet expired (\`paid_until\` in the future).
+**Response Structure:**
+The response provides two convenient formats:
+1. \`data.all\`: A flat array of all live ads, perfect for a single global ad rotator.
+2. \`data.grouped\`: An object where the ads are grouped by their designated \`position_slug\` (e.g., \`home_top\`, \`sidebar\`, etc.), making it incredibly easy to inject specific ads into specific screen components without filtering the data yourself.
+        
+---
+
+## 10. Reviews API (For All Modules)
+
+> [!NOTE]
+> **Important Note for Mobile Developers:** 
+> The Review APIs are highly modular and are handled independently within their respective modules (Properties, Projects, Agents, etc.).
+
+There is no single "Global Reviews" API. Instead, each module has its own dedicated review endpoints, which are already injected into their respective Postman collections.
+
+For example, to implement reviews on a **Property (Listing)**, you will find the \`Add Property Review\` and \`Get Property Reviews\` endpoints inside the **\`⭐ Property Reviews\`** folder within the \`MyAssetsHub — Property API v1\` Postman collection.
+
+Similarly, to implement reviews on a **Project**, you will find the exact same endpoints specifically tailored for projects inside the **\`⭐ Project Reviews\`** folder within the \`MyAssetsHub — Partners Projects API v1\` Postman collection.
+
+**Standard Endpoints format for any module:**
+- **GET** \`/api/v1/{module}/{id}/reviews\`
+- **POST** \`/api/v1/{module}/{id}/reviews\` 
+  *(Payload: \`rate_value\` (1-5), \`comment\`)*
+
+**Instructions:** Always refer to the specific Postman collection of the module you are building to find the pre-filled, working review endpoints for that specific screen!`;
+        document.getElementById('content').innerHTML = marked.parse(markdown);
+    </script>
+</body>
+</html>
