@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Referral & Invoice API · MyAssetsHub</title>
+
+    <!-- fonts & icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+    <style>
+        /* ----- design system (fresh) ----- */
+        :root {
+            --bg: #f6f9fc;
+            --surface: #ffffff;
+            --text: #0b1a33;
+            --text-secondary: #2d4059;
+            --primary: #0a4b7a;
+            --primary-soft: #e3eef9;
+            --accent: #d97a2b;
+            --accent-soft: #fdf0e2;
+            --border: #dde7f0;
+            --radius: 16px;
+            --shadow-sm: 0 8px 20px -8px rgba(10, 30, 50, 0.08);
+            --shadow-hover: 0 16px 32px -12px rgba(10, 30, 50, 0.12);
+            --transition: 0.2s ease;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            font-size: 15px;
+            scroll-behavior: smooth;
+        }
+
+        /* ----- header (new) ----- */
+        .api-header {
+            background: linear-gradient(145deg, #082d4e 0%, #0a4b7a 100%);
+            color: #fff;
+            padding: 48px 0 40px;
+            position: relative;
+            overflow: hidden;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .api-header::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 70% 10%, rgba(217, 122, 43, 0.20) 0%, transparent 60%);
+            pointer-events: none;
+        }
+        .api-title {
+            font-weight: 700;
+            font-size: 2.2rem;
+            letter-spacing: -0.4px;
+        }
+        .api-subtitle {
+            font-weight: 400;
+            color: #b5d1f0;
+            font-size: 1.05rem;
+        }
+        .badge-pill-custom {
+            background: rgba(255, 255, 255, 0.10);
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #fff;
+            font-weight: 500;
+            padding: 8px 18px;
+            border-radius: 40px;
+            font-size: 0.85rem;
+        }
+
+        /* ----- sidebar (refreshed) ----- */
+        .sidebar {
+            position: sticky;
+            top: 24px;
+            max-height: calc(100vh - 60px);
+            overflow-y: auto;
+            padding-right: 8px;
+        }
+        .sidebar::-webkit-scrollbar { width: 4px; }
+        .sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 8px; }
+
+        .sidebar-title {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.7px;
+            font-weight: 700;
+            color: #5b6f87;
+            padding-left: 12px;
+            margin: 24px 0 10px 0;
+        }
+        .sidebar-title:first-of-type { margin-top: 0; }
+
+        .nav-link-custom {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 10px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: 0.9rem;
+            text-decoration: none;
+            transition: var(--transition);
+            margin-bottom: 2px;
+        }
+        .nav-link-custom:hover {
+            background: var(--primary-soft);
+            color: var(--primary);
+        }
+        .nav-link-custom.active {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        .method-badge-sidebar {
+            font-size: 0.6rem;
+            font-weight: 700;
+            width: 38px;
+            text-align: center;
+            padding: 2px 0;
+            border-radius: 6px;
+            background: var(--border);
+            color: #1f3a5f;
+            flex-shrink: 0;
+        }
+        .method-badge-sidebar.get { background: #d1fae5; color: #0b6e4f; }
+        .method-badge-sidebar.post { background: #dbeafe; color: #1d4ed8; }
+        .method-badge-sidebar.put { background: #fef3c7; color: #b45309; }
+        .method-badge-sidebar.delete { background: #fee2e2; color: #b91c1c; }
+
+        /* ----- cards (new) ----- */
+        .api-card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            padding: 28px 30px;
+            margin-bottom: 32px;
+            box-shadow: var(--shadow-sm);
+            transition: box-shadow var(--transition), transform var(--transition);
+        }
+        .api-card:hover {
+            box-shadow: var(--shadow-hover);
+        }
+
+        .endpoint-row {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin-bottom: 12px;
+        }
+        .method-badge-main {
+            font-weight: 700;
+            font-size: 0.8rem;
+            padding: 4px 14px;
+            border-radius: 40px;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+            background: var(--border);
+            color: #1f3a5f;
+        }
+        .method-badge-main.get { background: #d1fae5; color: #0b6e4f; }
+        .method-badge-main.post { background: #dbeafe; color: #1d4ed8; }
+        .method-badge-main.put { background: #fef3c7; color: #b45309; }
+        .method-badge-main.delete { background: #fee2e2; color: #b91c1c; }
+
+        .endpoint-path {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 500;
+            font-size: 1.05rem;
+            background: var(--bg);
+            padding: 2px 14px;
+            border-radius: 40px;
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+
+        .section-tag {
+            display: inline-block;
+            background: var(--accent-soft);
+            color: var(--accent);
+            font-weight: 600;
+            font-size: 0.7rem;
+            letter-spacing: 0.4px;
+            text-transform: uppercase;
+            padding: 2px 12px;
+            border-radius: 40px;
+        }
+
+        /* callouts */
+        .callout-custom {
+            border-left: 4px solid var(--primary);
+            background: #f0f6fe;
+            padding: 14px 20px;
+            border-radius: 0 12px 12px 0;
+            margin: 20px 0 24px;
+        }
+        .callout-custom.warning {
+            border-left-color: var(--accent);
+            background: #fdf3e8;
+        }
+        .callout-title {
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* tables */
+        .table-custom {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+            margin: 16px 0 20px;
+        }
+        .table-custom th {
+            background: var(--bg);
+            font-weight: 600;
+            color: var(--text-secondary);
+            padding: 10px 14px;
+            border-bottom: 2px solid var(--border);
+            text-align: left;
+        }
+        .table-custom td {
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border);
+        }
+        .req { color: #b91c1c; font-weight: 600; }
+        .opt { color: #5b6f87; }
+
+        /* code blocks */
+        .code-header {
+            background: #0f1a2b;
+            color: #a0bbd9;
+            padding: 8px 18px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid #25344a;
+        }
+        pre {
+            background: #0f1a2b;
+            color: #b7d0f0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            padding: 18px 20px;
+            border-radius: 0 0 12px 12px;
+            overflow-x: auto;
+            margin-bottom: 20px;
+        }
+        .k { color: #f472b6; }
+        .s { color: #6ee7b7; }
+        .n { color: #fcd34d; }
+        .b { color: #a78bfa; }
+        .p { color: #e2e8f0; }
+        .c { color: #5b7a9a; }
+
+        /* responsive extras */
+        @media (max-width: 992px) {
+            .api-title { font-size: 1.8rem; }
+            .api-card { padding: 20px; }
+        }
+        @media (max-width: 576px) {
+            .endpoint-path { font-size: 0.9rem; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<header class="api-header">
+    <div class="container text-center position-relative">
+        <h1 class="api-title"><i class="fa-regular fa-paper-plane me-2"></i>Referral &amp; Invoice API</h1>
+
+        <h6 class="">In Postman you can find this collection with this name MyAssetHub Mobile v1 APIs and environment name MyAssetHub Referal and Local Environment </h6>
+        <p class="api-subtitle">Developer documentation for MyAssetsHub mobile integration</p>
+        <div class="d-flex justify-content-center gap-3 flex-wrap mt-4">
+            <span class="badge-pill-custom"><i class="fa-regular fa-lock me-1"></i> JWT Auth</span>
+            <span class="badge-pill-custom"><i class="fa-regular fa-diagram-project me-1"></i> Level 1–7 Tree</span>
+            <span class="badge-pill-custom"><i class="fa-regular fa-file-pdf me-1"></i> Invoice Export</span>
+        </div>
+    </div>
+</header>
+
+<!-- ===== MAIN ===== -->
+<div class="container my-5">
+    <div class="row g-4">
+
+        <!-- SIDEBAR -->
+        <aside class="col-lg-3 d-none d-lg-block">
+            <nav class="sidebar">
+
+                <div class="sidebar-title">Getting started</div>
+                <a href="#authentication" class="nav-link-custom"><i class="fa-regular fa-shield-halved me-2"></i>Authentication</a>
+
+                <div class="sidebar-title">Invoices</div>
+                <a href="#list-invoices" class="nav-link-custom"><span class="method-badge-sidebar get">GET</span>Invoices</a>
+                <a href="#invoice-detail" class="nav-link-custom"><span class="method-badge-sidebar get">GET</span>Detail</a>
+                <a href="#export-invoice" class="nav-link-custom"><span class="method-badge-sidebar get">GET</span>Export PDF</a>
+
+                <div class="sidebar-title">Referrals &amp; genealogy</div>
+                <a href="#referrals-dashboard" class="nav-link-custom"><span class="method-badge-sidebar get">GET</span>Dashboard</a>
+                <a href="#referrals-levels" class="nav-link-custom"><span class="method-badge-sidebar get">GET</span>Level breakdown</a>
+                <a href="#referral-summary" class="nav-link-custom"><span class="method-badge-sidebar get">GET</span>Direct summary</a>
+                <a href="#genealogy-nodes" class="nav-link-custom"><span class="method-badge-sidebar post">POST</span>Tree children</a>
+                <!-- <a href="#reassign-user" class="nav-link-custom"><span class="method-badge-sidebar post">POST</span>Reassign</a> -->
+                <a href="#commissions-log" class="nav-link-custom"><span class="method-badge-sidebar get">GET</span>Commission log</a>
+                <a href="#drilldown-user" class="nav-link-custom"><span class="method-badge-sidebar get">GET</span>Payout drilldown</a>
+
+                <div class="sidebar-title">Withdrawals &amp; bank</div>
+                <a href="#withdrawals-history" class="nav-link-custom"><span class="method-badge-sidebar get">GET</span>History</a>
+                <a href="#request-withdrawal" class="nav-link-custom"><span class="method-badge-sidebar post">POST</span>Request</a>
+                <a href="#update-bank" class="nav-link-custom"><span class="method-badge-sidebar put">PUT</span>bank upload</a>
+
+                <div class="sidebar-title">Chat &amp; support</div>
+                <a href="#chat-fetch-thread" class="nav-link-custom"><span class="method-badge-sidebar get">GET</span>Thread</a>
+                <a href="#chat-send-msg" class="nav-link-custom"><span class="method-badge-sidebar post">POST</span>Send</a>
+                <a href="#chat-fetch-single" class="nav-link-custom"><span class="method-badge-sidebar get">GET</span>Fetch message</a>
+                <a href="#chat-edit-msg" class="nav-link-custom"><span class="method-badge-sidebar put">PUT</span>Edit</a>
+                <a href="#chat-delete-msg" class="nav-link-custom"><span class="method-badge-sidebar delete">DEL</span>Delete msg</a>
+                <a href="#chat-delete-conv" class="nav-link-custom"><span class="method-badge-sidebar delete">DEL</span>Delete thread</a>
+                <a href="#chat-forward-msg" class="nav-link-custom"><span class="method-badge-sidebar post">POST</span>Forward</a>
+                <a href="#chat-serve-media" class="nav-link-custom"><span class="method-badge-sidebar get">GET</span>Serve media</a>
+                <a href="#support-feedback" class="nav-link-custom"><span class="method-badge-sidebar post">POST</span>Feedback</a>
+                <a href="#support-feedback-reply" class="nav-link-custom"><span class="method-badge-sidebar post">POST</span>Feedback reply</a>
+                <a href="#support-complaint" class="nav-link-custom"><span class="method-badge-sidebar post">POST</span>Raise ticket</a>
+                <a href="#support-complaint-reply" class="nav-link-custom"><span class="method-badge-sidebar post">POST</span>Ticket reply</a>
+
+            </nav>
+        </aside>
+
+        <!-- CONTENT -->
+        <div class="col-lg-9 col-12">
+
+            <!-- AUTH -->
+            <section id="authentication" class="mb-4">
+                <div class="api-card">
+                    <span class="section-tag mb-2">Getting started</span>
+                    <h2 class="fw-bold mb-3">Authentication &amp; token handshake</h2>
+                    <p>All endpoints require a bearer token in the <code>Authorization</code> header.</p>
+                    <div class="callout-custom">
+                        <div class="callout-title"><i class="fa-regular fa-circle-info"></i>Header schema</div>
+                        <p class="mb-0"><code>Authorization: Bearer &lt;your_jwt&gt;</code></p>
+                    </div>
+                    <div class="code-header">HTTP headers</div>
+                    <pre><span class="k">Authorization</span><span class="p">:</span> <span class="s">Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...</span></pre>
+                </div>
+            </section>
+
+            <!-- ========== INVOICES ========== -->
+            <section id="list-invoices" class="mb-4">
+                <div class="api-card">
+                    <div class="endpoint-row">
+                        <span class="method-badge-main get">GET</span>
+                        <span class="endpoint-path">/api/v1/invoices</span>
+                    </div>
+                    <h3 class="fw-bold">Retrieve own invoices</h3>
+                    <p class="text-secondary">Paginated list of membership purchase transactions.</p>
+                    <table class="table-custom">
+                        <thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Default</th><th>Description</th></tr></thead>
+                        <tbody>
+                            <tr><td>page</td><td>Integer</td><td>No</td><td>1</td><td>Page index</td></tr>
+                            <tr><td>per_page</td><td>Integer</td><td>No</td><td>5</td><td>Max 100</td></tr>
+                        </tbody>
+                    </table>
+                    <div class="code-header">Response (200 OK)</div>
+                    <pre><span class="p">{</span>
+  <span class="k">"status"</span><span class="p">:</span> <span class="s">"success"</span><span class="p">,</span>
+  <span class="k">"pagination"</span><span class="p">:</span> <span class="p">{</span> <span class="k">"page"</span><span class="p">:</span> <span class="n">1</span><span class="p">,</span> <span class="k">"per_page"</span><span class="p">:</span> <span class="n">5</span><span class="p">,</span> <span class="k">"total"</span><span class="p">:</span> <span class="n">12</span> <span class="p">},</span>
+  <span class="k">"data"</span><span class="p">:</span> <span class="p">[</span>
+    <span class="p">{</span> <span class="k">"tid"</span><span class="p">:</span> <span class="s">"45"</span><span class="p">,</span> <span class="k">"invoice_no"</span><span class="p">:</span> <span class="s">"MAH-2026-0045"</span><span class="p">,</span> <span class="k">"amount"</span><span class="p">:</span> <span class="s">"2500.00"</span> <span class="p">}</span>
+  <span class="p">]</span>
+<span class="p">}</span></pre>
+                </div>
+            </section>
+
+            <section id="invoice-detail" class="mb-4">
+                <div class="api-card">
+                    <div class="endpoint-row">
+                        <span class="method-badge-main get">GET</span>
+                        <span class="endpoint-path">/api/v1/invoices/{tid}</span>
+                    </div>
+                    <h3 class="fw-bold">Invoice detail</h3>
+                    <p class="text-secondary">Full invoice metadata including GST breakdown.</p>
+                    <div class="callout-custom">
+                        <div class="callout-title"><i class="fa-regular fa-lightbulb"></i>Dynamic GST</div>
+                        <p class="mb-0">Telangana → CGST+SGST (9% each) · Other Indian states → IGST (18%) · International → 0%</p>
+                    </div>
+                    <div class="code-header">Response (200 OK)</div>
+                    <pre><span class="p">{</span>
+  <span class="k">"status"</span><span class="p">:</span> <span class="s">"success"</span><span class="p">,</span>
+  <span class="k">"data"</span><span class="p">:</span> <span class="p">{</span>
+    <span class="k">"tid"</span><span class="p">:</span> <span class="s">"45"</span><span class="p">,</span>
+    <span class="k">"invoice_no"</span><span class="p">:</span> <span class="s">"MAH-2026-0045"</span><span class="p">,</span>
+    <span class="k">"gst_breakdown"</span><span class="p">:</span> <span class="p">{</span> <span class="k">"type"</span><span class="p">:</span> <span class="s">"CGST+SGST"</span><span class="p">,</span> <span class="k">"cgst"</span><span class="p">:</span> <span class="n">190.68</span><span class="p">,</span> <span class="k">"sgst"</span><span class="p">:</span> <span class="n">190.68</span> <span class="p">}</span>
+  <span class="p">}</span>
+<span class="p">}</span></pre>
+                </div>
+            </section>
+
+            <section id="export-invoice" class="mb-4">
+                <div class="api-card">
+                    <div class="endpoint-row">
+                        <span class="method-badge-main get">GET</span>
+                        <span class="endpoint-path">/api/v1/invoices/{tid}/export</span>
+                    </div>
+                    <h3 class="fw-bold">Export invoice PDF</h3>
+                    <p class="text-secondary">Downloads a formatted PDF receipt. <span class="text-muted"><i class="fa-regular fa-file-pdf text-danger me-1"></i>Content-Type: application/pdf</span></p>
+                </div>
+            </section>
+
+            <!-- ========== REFERRALS ========== -->
+            <section id="referrals-dashboard" class="mb-4">
+                <div class="api-card">
+                    <div class="endpoint-row">
+                        <span class="method-badge-main get">GET</span>
+                        <span class="endpoint-path">/api/v1/referrals/dashboard</span>
+                    </div>
+                    <h3 class="fw-bold">Referral dashboard</h3>
+                    <p class="text-secondary">Consolidated earnings, wallet balances, level counts, and bank status.</p>
+                    <div class="code-header">Response (200 OK)</div>
+                    <pre><span class="p">{</span>
+  <span class="k">"data"</span><span class="p">:</span> <span class="p">{</span>
+    <span class="k">"earnings"</span><span class="p">:</span> <span class="p">{</span> <span class="k">"total_earned"</span><span class="p">:</span> <span class="n">28450.00</span><span class="p">,</span> <span class="k">"available_balance"</span><span class="p">:</span> <span class="n">12950.00</span> <span class="p">},</span>
+    <span class="k">"levels"</span><span class="p">:</span> <span class="p">[</span> <span class="p">{</span> <span class="k">"level"</span><span class="p">:</span> <span class="n">1</span><span class="p">,</span> <span class="k">"count"</span><span class="p">:</span> <span class="n">8</span><span class="p">,</span> <span class="k">"amount"</span><span class="p">:</span> <span class="n">8000.00</span> <span class="p">}</span> <span class="p">]</span>
+  <span class="p">}</span>
+<span class="p">}</span></pre>
+                </div>
+            </section>
+
+            <section id="referrals-levels" class="mb-4">
+                <div class="api-card">
+                    <div class="endpoint-row">
+                        <span class="method-badge-main get">GET</span>
+                        <span class="endpoint-path">/api/v1/referrals/levels?level=1</span>
+                    </div>
+                    <h3 class="fw-bold">Level breakdown</h3>
+                    <p class="text-secondary">Total downline counts per level. Add <code>level</code> param for member listing.</p>
+                </div>
+            </section>
+
+            <section id="referral-summary" class="mb-4">
+                <div class="api-card">
+                    <div class="endpoint-row">
+                        <span class="method-badge-main get">GET</span>
+                        <span class="endpoint-path">/api/v1/referrals/summary</span>
+                    </div>
+                    <h3 class="fw-bold">Direct referral summary</h3>
+                    <p class="text-secondary">Groups direct children into active, inactive, and non-referrals.</p>
+                </div>
+            </section>
+
+            <section id="genealogy-nodes" class="mb-4">
+                <div class="api-card">
+                    <div class="endpoint-row">
+                        <span class="method-badge-main post">POST</span>
+                        <span class="endpoint-path">/api/v1/referrals/tree-children</span>
+                    </div>
+                    <h3 class="fw-bold">Tree children</h3>
+                    <p class="text-secondary">Fetch children for a given parent node.</p>
+                    <div class="code-header">Payload</div>
+                    <pre><span class="p">{</span> <span class="k">"parent_id"</span><span class="p">:</span> <span class="n">42</span> <span class="p">}</span></pre>
+                </div>
+            </section>
+
+            <!-- <section id="reassign-user" class="mb-4">
+                <div class="api-card">
+                    <div class="endpoint-row">
+                        <span class="method-badge-main post">POST</span>
+                        <span class="endpoint-path">/api/v1/referrals/reassign-user</span>
+                    </div>
+                    <h3 class="fw-bold">Reassign child</h3>
+                    <p class="text-secondary">Move a direct child to a new parent (only once, max 10 children per parent).</p>
+                    <div class="callout-custom warning">
+                        <div class="callout-title"><i class="fa-regular fa-triangle-exclamation"></i>Validation</div>
+                        <p class="mb-0">Direct child only · <code>adjusted_once == 0</code> · target parent has &lt;10 children · PIN required</p>
+                    </div>
+                </div>
+            </section> -->
+
+            <section id="commissions-log" class="mb-4">
+                <div class="api-card">
+                    <div class="endpoint-row">
+                        <span class="method-badge-main get">GET</span>
+                        <span class="endpoint-path">/api/v1/referrals/list?page=1&level=2</span>
+                    </div>
+                    <h3 class="fw-bold">Commission log</h3>
+                    <p class="text-secondary">Paginated commission receipts, filterable by level.</p>
+                </div>
+            </section>
+
+            <section id="drilldown-user" class="mb-4">
+                <div class="api-card">
+                    <div class="endpoint-row">
+                        <span class="method-badge-main get">GET</span>
+                        <span class="endpoint-path">/api/v1/referrals/drilldown/{referid}</span>
+                    </div>
+                    <h3 class="fw-bold">Payout drilldown</h3>
+                    <p class="text-secondary">Total earned from a specific downline member.</p>
+                </div>
+            </section>
+
+            <!-- ========== WITHDRAWALS ========== -->
+            <section id="withdrawals-history" class="mb-4">
+                <div class="api-card">
+                    <div class="endpoint-row">
+                        <span class="method-badge-main get">GET</span>
+                        <span class="endpoint-path">/api/v1/withdrawals?status=2</span>
+                    </div>
+                    <h3 class="fw-bold">Withdrawal history</h3>
+                    <p class="text-secondary">Filter by status: 1=approved, 2=pending, 3=rejected.</p>
+                </div>
+            </section>
+
+            <section id="request-withdrawal" class="mb-4">
+                <div class="api-card">
+                    <div class="endpoint-row">
+                        <span class="method-badge-main post">POST</span>
+                        <span class="endpoint-path">/api/v1/withdrawals</span>
+                    </div>
+                    <h3 class="fw-bold">Request withdrawal</h3>
+                    <p class="text-secondary">Min ₹1000 · requires bank uploaded · PIN required.</p>
+                    <div class="code-header">Payload</div>
+                    <pre><span class="p">{</span> <span class="k">"withdraw_amount"</span><span class="p">:</span> <span class="n">1500.00</span><span class="p">,</span> <span class="k">"transaction_pin"</span><span class="p">:</span> <span class="s">"123456"</span> <span class="p">}</span></pre>
+                </div>
+            </section>
+
+            <!-- Upload KYC Details -->
+            <section id="update-bank" class="mb-4">
+                <div class="api-card">
+                    <div class="endpoint-row">
+                        <span class="method-badge-main put">PUT</span>
+                        <span class="endpoint-path">/api/v1/withdrawals/bank-details</span>
+                    </div>
+                    <h3 class="fw-bold">Upload bank details</h3>
+                    <p class="text-secondary">Multipart form-data: bankaccount, ifsccode, upi_id, transaction_pin, idproof, bankproof.</p>
+                    <div class="code-header">Response (200 OK)</div>
+<pre><span class="p">{</span>
+  <span class="k">"status"</span>: <span class="s">"success"</span>,
+  <span class="k">"message"</span>: <span class="s">"Bank details updated successfully."</span>,
+  <span class="k">"notes"</span>: <span class="s">"Submitted to admin and admin is not liable for any discrepancy"</span>
+<span class="p">}</span></pre>
+                </div>
+            </section>
+
+            <!-- ========== CHAT & SUPPORT ========== -->
+            
+            <section id="chat-fetch-thread" class="mb-4">
+                <div class="api-card">
+                    <span class="section-tag mb-2">Chat</span>
+                    <div class="endpoint-row">
+                        <span class="method-badge-main get">GET</span>
+                        <span class="endpoint-path">/api/v1/chat/{username}</span>
+                    </div>
+                    <h3 class="fw-bold">Fetch thread &amp; sidebar</h3>
+                    <p class="text-secondary">Messages with a user/admin and chat history sidebar.</p>
+                    <div class="code-header">Response (200 OK)</div>
+<pre><span class="p">{</span>
+  <span class="k">"status"</span>: <span class="b">true</span>,
+  <span class="k">"message"</span>: <span class="s">"Chat thread fetched successfully"</span>,
+  <span class="k">"data"</span>: <span class="p">{</span>
+    <span class="k">"selected_user"</span>: <span class="p">{</span>
+      <span class="k">"u_id"</span>: <span class="s">"admin_1"</span>,
+      <span class="k">"username"</span>: <span class="s">"admin"</span>,
+      <span class="k">"first_name"</span>: <span class="s">"Admin"</span>,
+      <span class="k">"last_name"</span>: <span class="s">"Support"</span>,
+      <span class="k">"image"</span>: <span class="s">"assets/images/logo.png"</span>
+    <span class="p">},</span>
+    <span class="k">"thread"</span>: <span class="p">{</span>
+      <span class="k">"pagination"</span>: <span class="p">{</span> <span class="k">"page"</span>: <span class="n">1</span>, <span class="k">"per_page"</span>: <span class="n">50</span>, <span class="k">"total"</span>: <span class="n">20</span> <span class="p">},</span>
+      <span class="k">"messages"</span>: [
+        <span class="p">{</span>
+          <span class="k">"id"</span>: <span class="s">"128"</span>,
+          <span class="k">"sender"</span>: <span class="s">"101"</span>,
+          <span class="k">"receiver"</span>: <span class="s">"admin_1"</span>,
+          <span class="k">"message"</span>: <span class="s">"Hello, I need help with my account."</span>,
+          <span class="k">"images"</span>: <span class="b">null</span>,
+          <span class="k">"created_at"</span>: <span class="s">"2026-07-24 19:15:30"</span>
+        <span class="p">}</span>
+      ]
+    <span class="p">},</span>
+    <span class="k">"sidebar"</span>: [
+      <span class="p">{</span>
+        <span class="k">"u_id"</span>: <span class="s">"admin_1"</span>,
+        <span class="k">"username"</span>: <span class="s">"admin"</span>,
+        <span class="k">"first_name"</span>: <span class="s">"Admin"</span>,
+        <span class="k">"last_name"</span>: <span class="s">"Support"</span>,
+        <span class="k">"image"</span>: <span class="s">"assets/images/logo.png"</span>,
+        <span class="k">"last_message"</span>: <span class="s">"Hello, I need help with my account."</span>,
+        <span class="k">"unread_count"</span>: <span class="n">0</span>
+      <span class="p">}</span>
+    ]
+  <span class="p">}</span>
+<span class="p">}</span></pre>
+                </div>
+            </section>
+
+            <section id="chat-send-msg" class="mb-4">
+                <div class="api-card">
+                    <span class="section-tag mb-2">Chat</span>
+                    <div class="endpoint-row">
+                        <span class="method-badge-main post">POST</span>
+                        <span class="endpoint-path">/api/v1/chat/messages</span>
+                    </div>
+                    <h3 class="fw-bold">Send message</h3>
+                    <p class="text-secondary">Multipart: receiver_id, message, file (image, max 5MB).</p>
+                    <div class="code-header">Payload</div>
+<pre>receiver_id: <span class="s">"admin_1"</span>
+message: <span class="s">"Please see the attachment screenshot."</span>
+file: <span class="c">[File: image.png]</span></pre>
+                    <div class="code-header">Response (201 Created)</div>
+<pre><span class="p">{</span>
+  <span class="k">"status"</span>: <span class="b">true</span>,
+  <span class="k">"message"</span>: <span class="s">"Message sent successfully."</span>,
+  <span class="k">"data"</span>: <span class="p">{</span>
+    <span class="k">"id"</span>: <span class="s">"129"</span>,
+    <span class="k">"sender"</span>: <span class="s">"101"</span>,
+    <span class="k">"receiver"</span>: <span class="s">"admin_1"</span>,
+    <span class="k">"message"</span>: <span class="s">"Please see the attachment screenshot."</span>,
+    <span class="k">"images"</span>: <span class="s">"chat/17848952.png"</span>,
+    <span class="k">"created_at"</span>: <span class="s">"2026-07-24 19:16:15"</span>
+  <span class="p">}</span>
+<span class="p">}</span></pre>
+                </div>
+            </section>
+
+            <section id="chat-fetch-single" class="mb-4">
+                <div class="api-card">
+                    <span class="section-tag mb-2">Chat</span>
+                    <div class="endpoint-row">
+                        <span class="method-badge-main get">GET</span>
+                        <span class="endpoint-path">/api/v1/chat/messages/{id}</span>
+                    </div>
+                    <h3 class="fw-bold">Fetch single message</h3>
+                    <p class="text-secondary">For editing — sender only.</p>
+                    <div class="code-header">Response (200 OK)</div>
+<pre><span class="p">{</span>
+  <span class="k">"status"</span>: <span class="b">true</span>,
+  <span class="k">"message"</span>: <span class="s">"Message fetched successfully"</span>,
+  <span class="k">"data"</span>: <span class="p">{</span>
+    <span class="k">"id"</span>: <span class="s">"129"</span>,
+    <span class="k">"sender"</span>: <span class="s">"101"</span>,
+    <span class="k">"receiver"</span>: <span class="s">"admin_1"</span>,
+    <span class="k">"message"</span>: <span class="s">"Please see the attachment screenshot."</span>,
+    <span class="k">"images"</span>: <span class="s">"chat/17848952.png"</span>,
+    <span class="k">"created_at"</span>: <span class="s">"2026-07-24 19:16:15"</span>
+  <span class="p">}</span>
+<span class="p">}</span></pre>
+                </div>
+            </section>
+
+            <section id="chat-edit-msg" class="mb-4">
+                <div class="api-card">
+                    <span class="section-tag mb-2">Chat</span>
+                    <div class="endpoint-row">
+                        <span class="method-badge-main put">PUT</span>
+                        <span class="endpoint-path">/api/v1/chat/messages/{id}</span>
+                    </div>
+                    <h3 class="fw-bold">Edit message</h3>
+                    <p class="text-secondary">Update text content (grace period applies).</p>
+                    <div class="code-header">Payload</div>
+<pre><span class="p">{</span> <span class="k">"message"</span><span class="p">:</span> <span class="s">"I have updated my query text."</span> <span class="p">}</span></pre>
+                    <div class="code-header">Response (200 OK)</div>
+<pre><span class="p">{</span>
+  <span class="k">"status"</span>: <span class="b">true</span>,
+  <span class="k">"message"</span>: <span class="s">"Message updated successfully."</span>,
+  <span class="k">"data"</span>: <span class="p">{</span>
+    <span class="k">"id"</span>: <span class="s">"129"</span>,
+    <span class="k">"message"</span>: <span class="s">"I have updated my query text."</span>
+  <span class="p">}</span>
+<span class="p">}</span></pre>
+                </div>
+            </section>
+
+            <section id="chat-delete-msg" class="mb-4">
+                <div class="api-card">
+                    <span class="section-tag mb-2">Chat</span>
+                    <div class="endpoint-row">
+                        <span class="method-badge-main delete">DELETE</span>
+                        <span class="endpoint-path">/api/v1/chat/messages/{id}</span>
+                    </div>
+                    <h3 class="fw-bold">Delete message</h3>
+                    <p class="text-secondary">Deletes message from sender's view.</p>
+                    <div class="code-header">Response (200 OK)</div>
+<pre><span class="p">{</span>
+  <span class="k">"status"</span>: <span class="b">true</span>,
+  <span class="k">"message"</span>: <span class="s">"Message deleted successfully."</span>
+<span class="p">}</span></pre>
+                </div>
+            </section>
+
+            <section id="chat-delete-conv" class="mb-4">
+                <div class="api-card">
+                    <span class="section-tag mb-2">Chat</span>
+                    <div class="endpoint-row">
+                        <span class="method-badge-main delete">DELETE</span>
+                        <span class="endpoint-path">/api/v1/chat/conversations/{receiver_id}</span>
+                    </div>
+                    <h3 class="fw-bold">Delete thread</h3>
+                    <p class="text-secondary">Deletes entire conversation thread from active view.</p>
+                    <div class="code-header">Response (200 OK)</div>
+<pre><span class="p">{</span>
+  <span class="k">"status"</span>: <span class="b">true</span>,
+  <span class="k">"message"</span>: <span class="s">"Conversation deleted successfully."</span>,
+  <span class="k">"data"</span>: <span class="p">{</span>
+    <span class="k">"deleted_count"</span>: <span class="n">20</span>
+  <span class="p">}</span>
+<span class="p">}</span></pre>
+                </div>
+            </section>
+
+            <section id="chat-forward-msg" class="mb-4">
+                <div class="api-card">
+                    <span class="section-tag mb-2">Chat</span>
+                    <div class="endpoint-row">
+                        <span class="method-badge-main post">POST</span>
+                        <span class="endpoint-path">/api/v1/chat/messages/{id}/forward</span>
+                    </div>
+                    <h3 class="fw-bold">Forward message</h3>
+                    <p class="text-secondary">Forwards message and attachments to target user ID.</p>
+                    <div class="code-header">Payload</div>
+<pre><span class="p">{</span> <span class="k">"receiver_id"</span><span class="p">:</span> <span class="s">"105"</span> <span class="p">}</span></pre>
+                    <div class="code-header">Response (200 OK)</div>
+<pre><span class="p">{</span>
+  <span class="k">"status"</span>: <span class="b">true</span>,
+  <span class="k">"message"</span>: <span class="s">"Message forwarded successfully."</span>,
+  <span class="k">"data"</span>: <span class="p">{</span>
+    <span class="k">"id"</span>: <span class="s">"130"</span>,
+    <span class="k">"sender"</span>: <span class="s">"101"</span>,
+    <span class="k">"receiver"</span>: <span class="s">"105"</span>,
+    <span class="k">"message"</span>: <span class="s">"Please see the attachment screenshot."</span>
+  <span class="p">}</span>
+<span class="p">}</span></pre>
+                </div>
+            </section>
+
+            <section id="chat-serve-media" class="mb-4">
+                <div class="api-card">
+                    <span class="section-tag mb-2">Chat</span>
+                    <div class="endpoint-row">
+                        <span class="method-badge-main get">GET</span>
+                        <span class="endpoint-path">/api/v1/chat/media/{filename}</span>
+                    </div>
+                    <h3 class="fw-bold">Serve media</h3>
+                    <p class="text-secondary">Streams secure images from chat storage. Requires authentication and checks if user is sender/receiver.</p>
+                    <p class="text-muted"><i class="fa-solid fa-file-image text-primary me-2"></i><strong>Response Content-Type</strong>: `image/png` | `image/jpeg`</p>
+                </div>
+            </section>
+
+            <section id="support-feedback" class="mb-4">
+                <div class="api-card">
+                    <span class="section-tag mb-2">Support</span>
+                    <div class="endpoint-row">
+                        <span class="method-badge-main post">POST</span>
+                        <span class="endpoint-path">/api/v1/feedback</span>
+                    </div>
+                    <h3 class="fw-bold">Submit feedback</h3>
+                    <p class="text-secondary">General user review feedback submission.</p>
+                    <div class="code-header">Payload</div>
+<pre><span class="p">{</span>
+  <span class="k">"name"</span>: <span class="s">"John Doe"</span>,
+  <span class="k">"rating"</span>: <span class="s">"excellent"</span>,
+  <span class="k">"comments"</span>: <span class="s">"Excellent platform support."</span>
+<span class="p">}</span></pre>
+                    <div class="code-header">Response (200 OK)</div>
+<pre><span class="p">{</span>
+  <span class="k">"status"</span>: <span class="b">true</span>,
+  <span class="k">"message"</span>: <span class="s">"Thank you! Your feedback has been submitted successfully."</span>,
+  <span class="k">"data"</span>: <span class="p">{</span>
+    <span class="k">"feedback_id"</span>: <span class="n">12</span>
+  <span class="p">}</span>
+<span class="p">}</span></pre>
+                </div>
+            </section>
+
+            <section id="support-feedback-reply" class="mb-4">
+                <div class="api-card">
+                    <span class="section-tag mb-2">Support</span>
+                    <div class="endpoint-row">
+                        <span class="method-badge-main post">POST</span>
+                        <span class="endpoint-path">/api/v1/feedback/reply</span>
+                    </div>
+                    <h3 class="fw-bold">Reply to feedback</h3>
+                    <p class="text-secondary">Appends response message to a feedback thread.</p>
+                    <div class="code-header">Payload</div>
+<pre><span class="p">{</span>
+  <span class="k">"feedback_id"</span>: <span class="n">12</span>,
+  <span class="k">"message"</span>: <span class="s">"Additional detail about my experience."</span>
+<span class="p">}</span></pre>
+                    <div class="code-header">Response (200 OK)</div>
+<pre><span class="p">{</span>
+  <span class="k">"status"</span>: <span class="b">true</span>,
+  <span class="k">"message"</span>: <span class="s">"Reply posted successfully!"</span>
+<span class="p">}</span></pre>
+                </div>
+            </section>
+
+            <section id="support-complaint" class="mb-4">
+                <div class="api-card">
+                    <span class="section-tag mb-2">Support</span>
+                    <div class="endpoint-row">
+                        <span class="method-badge-main post">POST</span>
+                        <span class="endpoint-path">/api/v1/complaint</span>
+                    </div>
+                    <h3 class="fw-bold">Raise ticket</h3>
+                    <p class="text-secondary">Creates a new support request and complaint ticket.</p>
+                    <div class="code-header">Payload</div>
+<pre><span class="p">{</span>
+  <span class="k">"subject"</span>: <span class="s">"Billing double charge"</span>,
+  <span class="k">"description"</span>: <span class="s">"I was charged twice on my invoice."</span>,
+  <span class="k">"category"</span>: <span class="s">"Billing"</span>
+<span class="p">}</span></pre>
+                    <div class="code-header">Response (200 OK)</div>
+<pre><span class="p">{</span>
+  <span class="k">"status"</span>: <span class="b">true</span>,
+  <span class="k">"message"</span>: <span class="s">"Complaint ticket MAH-COMP-10492 created successfully!"</span>,
+  <span class="k">"data"</span>: <span class="p">{</span>
+    <span class="k">"complaint_id"</span>: <span class="n">58</span>,
+    <span class="k">"ticket_id"</span>: <span class="s">"MAH-COMP-10492"</span>
+  <span class="p">}</span>
+<span class="p">}</span></pre>
+                </div>
+            </section>
+
+            <section id="support-complaint-reply" class="mb-4">
+                <div class="api-card">
+                    <span class="section-tag mb-2">Support</span>
+                    <div class="endpoint-row">
+                        <span class="method-badge-main post">POST</span>
+                        <span class="endpoint-path">/api/v1/complaint/reply</span>
+                    </div>
+                    <h3 class="fw-bold">Reply to ticket</h3>
+                    <p class="text-secondary">Appends message reply to ticket thread.</p>
+                    <div class="code-header">Payload</div>
+<pre><span class="p">{</span>
+  <span class="k">"complaint_id"</span>: <span class="n">58</span>,
+  <span class="k">"message"</span>: <span class="s">"Here is the proof of the transaction."</span>
+<span class="p">}</span></pre>
+                    <div class="code-header">Response (200 OK)</div>
+<pre><span class="p">{</span>
+  <span class="k">"status"</span>: <span class="b">true</span>,
+  <span class="k">"message"</span>: <span class="s">"Reply posted successfully!"</span>
+<span class="p">}</span></pre>
+                </div>
+            </section>
+        </div>
+    </div>
+</div>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Sidebar highlights link tracker script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const sections = document.querySelectorAll('section');
+            const navLinks = document.querySelectorAll('.nav-link-custom');
+            
+            window.addEventListener('scroll', () => {
+                let current = '';
+                sections.forEach(section => {
+                    const sectionTop = section.offsetTop;
+                    if (pageYOffset >= sectionTop - 150) {
+                        current = section.getAttribute('id');
+                    }
+                });
+                
+                navLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.getAttribute('href') === `#${current}`) {
+                        link.classList.add('active');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
